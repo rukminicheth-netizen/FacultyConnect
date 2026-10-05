@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FacultyConnect — Availability Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+font-family:'Nunito',sans-serif;
+background:#f0f4ff;
+color:#1e2a4a;
+min-height:100vh;
+}
+
+.layout{
+display:flex;
+min-height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+width:260px;
+background:#0b1437;
+color:white;
+padding:28px;
+display:flex;
+flex-direction:column;
+gap:25px;
+}
+
+.sidebar h1{
+font-family:'Playfair Display',serif;
+font-size:20px;
+}
+
+.sidebar p{
+font-size:13px;
+opacity:.7;
+line-height:1.6;
+}
+
+.cal-widget input{
+width:100%;
+padding:8px;
+border-radius:8px;
+border:none;
+}
+
+/* MAIN */
+
+.main{
+flex:1;
+padding:30px;
+display:flex;
+flex-direction:column;
+gap:20px;
+}
+
+/* HERO */
+
+.hero{
+background:white;
+border-radius:16px;
+padding:24px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 8px 30px rgba(0,0,0,.08);
+}
+
+.hero h2{
+font-family:'Playfair Display',serif;
+}
+
+.hero-actions{
+display:flex;
+gap:10px;
+}
+
+/* BUTTON */
+
+button{
+background:#2563eb;
+color:white;
+border:none;
+padding:10px 16px;
+border-radius:10px;
+font-size:13px;
+cursor:pointer;
+}
+
+button:hover{
+background:#1d4ed8;
+}
+
+/* SEARCH BAR */
+
+.toolbar{
+display:flex;
+gap:10px;
+background:white;
+padding:14px;
+border-radius:12px;
+box-shadow:0 4px 16px rgba(0,0,0,.08);
+}
+
+.toolbar input,select{
+padding:10px;
+border-radius:8px;
+border:1px solid #ddd;
+}
+
+/* TABLE */
+
+.table-wrap{
+background:white;
+border-radius:16px;
+box-shadow:0 8px 30px rgba(0,0,0,.08);
+overflow:hidden;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+thead{
+background:#0b1437;
+color:white;
+}
+
+th,td{
+padding:14px;
+text-align:left;
+font-size:13px;
+}
+
+tbody tr:hover{
+background:#f7f9ff;
+}
+
+/* STATUS */
+
+.status-pill{
+display:inline-flex;
+align-items:center;
+gap:6px;
+padding:6px 12px;
+border-radius:999px;
+font-size:12px;
+font-weight:700;
+}
+
+.status-pill.available{
+background:#d1fae5;
+color:#065f46;
+}
+
+.status-pill.busy{
+background:#fee2e2;
+color:#991b1b;
+}
+
+.status-pill.wait{
+background:#fef3c7;
+color:#78350f;
+}
+
+.status-pill.not{
+background:#e2e8f0;
+color:#334155;
+}
+
+.pill-dot{
+width:8px;
+height:8px;
+border-radius:50%;
+background:currentColor;
+}
+
+.status-pill.available .pill-dot{
+animation:pulse 1.2s infinite;
+}
+
+@keyframes pulse{
+0%{transform:scale(1)}
+50%{transform:scale(.6)}
+100%{transform:scale(1)}
+}
+
+/* WEEKLY CARDS */
+
+.week-inner{
+display:flex;
+gap:10px;
+justify-content:center;
+padding:18px;
+background:#eef2ff;
+}
+
+.dayCard{
+background:white;
+padding:10px 14px;
+border-radius:10px;
+border:1px solid #e5e7eb;
+font-size:12px;
+text-align:center;
+}
+
+/* MODAL */
+
+.modal-overlay{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.4);
+display:flex;
+align-items:center;
+justify-content:center;
+opacity:0;
+pointer-events:none;
+transition:.25s;
+}
+
+.modal-overlay.open{
+opacity:1;
+pointer-events:auto;
+}
+
+.modal{
+background:white;
+padding:30px;
+border-radius:16px;
+width:420px;
+}
+
+.modal input,.modal select{
+width:100%;
+margin-bottom:10px;
+padding:10px;
+border-radius:8px;
+border:1px solid #ddd;
+}
+
+/* TOAST */
+
+.toast-container{
+position:fixed;
+bottom:20px;
+right:20px;
+}
+
+.toast{
+background:white;
+padding:12px 18px;
+border-radius:10px;
+box-shadow:0 6px 24px rgba(0,0,0,.15);
+margin-top:10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+<div class="sidebar">
+
+<h1>FacultyConnect</h1>
+
+<p>Check faculty availability and weekly consultation schedules.</p>
+
+<div class="cal-widget">
+
+<h3 style="margin-bottom:10px;">📅 Today</h3>
+
+<div id="currentDate" style="font-size:14px;margin-bottom:6px;"></div>
+
+<div id="currentTime" style="font-size:13px;color:#555;margin-bottom:10px;"></div>
+
+<input type="date" id="visitDate">
+
+<p style="font-size:11px;margin-top:8px;">
+Select date before visiting faculty
+</p>
+
+</div>
+
+</div>
+
+<div class="main">
+
+<div class="hero">
+<h2>Faculty Availability Dashboard</h2>
+
+<div class="hero-actions">
+<button onclick="openModal('modalStatus')">Update Status</button>
+<button onclick="openModal('modalAdd')">Add Faculty</button>
+<button onclick="openModal('modalSchedule')">Set Weekly</button>
+</div>
+
+</div>
+
+<div class="toolbar">
+
+<input id="search" placeholder="Search faculty">
+
+<select id="deptFilter">
+<option value="all">All Departments</option>
+<option value="Computer Science">Computer Science</option>
+<option value="Information Technology">Information Technology</option>
+<option value="AI">AI</option>
+</select>
+
+</div>
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+<tr>
+<th>Name</th>
+<th>Department</th>
+<th>Floor</th>
+<th>Cabin</th>
+<th>Working Hours</th>
+<th>Status</th>
+<th>Weekly</th>
+</tr>
+</thead>
+
+<tbody id="facultyBody"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<div class="modal-overlay" id="modalStatus">
+<div class="modal">
+
+<h2>Update Status</h2>
+
+<input id="facultyName" placeholder="Faculty Name">
+
+<select id="workingHours">
+<option value="Full Day (9 AM - 4 PM)">Full Day (9 AM - 4 PM)</option>
+<option value="Full Day (10 AM - 5 PM)">Full Day (10 AM - 5 PM)</option>
+<option value="First Half">Half Day – First Half</option>
+<option value="Second Half">Half Day – Second Half</option>
+</select>
+
+<select id="statusSelect">
+<option value="Available">Available</option>
+<option value="Busy">Busy</option>
+<option value="30 Minutes">Come After 30 Minutes</option>
+<option value="Not Available">Not Available</option>
+</select>
+
+<button onclick="updateStatus()">Update</button>
+<button onclick="closeModal('modalStatus')">Cancel</button>
+
+</div>
+</div>
+
+<div class="modal-overlay" id="modalStatus">
+<div class="modal">
+
+<h2>Update Status</h2>
+
+<input id="facultyName" placeholder="Faculty Name">
+
+<select id="workingHours">
+<option value="Full Day (9 AM - 4 PM)">Full Day (9 AM - 4 PM)</option>
+<option value="Full Day (10 AM - 5 PM)">Full Day (10 AM - 5 PM)</option>
+<option value="First Half">Half Day – First Half</option>
+<option value="Second Half">Half Day – Second Half</option>
+</select>
+
+<select id="statusSelect">
+<option value="Available">Available</option>
+<option value="Busy">Busy</option>
+<option value="30 Minutes">Come After 30 Minutes</option>
+<option value="Not Available">Not Available</option>
+</select>
+
+<button onclick="updateStatus()">Update</button>
+<button onclick="closeModal('modalStatus')">Cancel</button>
+
+</div>
+</div>
+
+<div class="modal-overlay" id="modalAdd">
+<div class="modal">
+
+<h2>Add Faculty</h2>
+
+<input id="newName" placeholder="Faculty Name">
+
+<select id="newDept">
+<option value="Computer Science">Computer Science</option>
+<option value="Information Technology">Information Technology</option>
+<option value="AI">Artificial Intelligence</option>
+<option value="Data Science">Data Science</option>
+<option value="Electronics">Electronics</option>
+<option value="Mathematics">Mathematics</option>
+</select>
+
+<input id="newFloor" placeholder="Floor">
+<input id="newCabin" placeholder="Cabin">
+
+<select id="newHours">
+<option value="Full Day (9 AM - 4 PM)">Full Day (9 AM - 4 PM)</option>
+<option value="Full Day (10 AM - 5 PM)">Full Day (10 AM - 5 PM)</option>
+<option value="First Half">Half Day – First Half</option>
+<option value="Second Half">Half Day – Second Half</option>
+</select>
+
+<button onclick="addFaculty()">Add</button>
+<button onclick="closeModal('modalAdd')">Cancel</button>
+
+</div>
+</div>
+
+<div class="modal-overlay" id="modalSchedule">
+<div class="modal">
+
+<h2>Weekly Schedule</h2>
+
+<input id="facultySchedule" placeholder="Faculty Name">
+
+<input type="date">
+
+<select id="mon"><option value="Available Morning">Morning</option><option value="Not Available">Not Available</option></select>
+<select id="tue"><option value="Available Morning">Morning</option><option value="Not Available">Not Available</option></select>
+<select id="wed"><option value="Available Morning">Morning</option><option value="Not Available">Not Available</option></select>
+<select id="thu"><option value="Available Morning">Morning</option><option value="Not Available">Not Available</option></select>
+<select id="fri"><option value="Available Morning">Morning</option><option value="Not Available">Not Available</option></select>
+
+<button onclick="updateSchedule()">Save</button>
+<button onclick="closeModal('modalSchedule')">Cancel</button>
+
+</div>
+</div>
+
+
+
+<script>
+
+let facultyList=[]
+
+function openModal(id){
+const modal=document.getElementById(id)
+if(modal){
+modal.classList.add("open")
+}
+}
+
+function closeModal(id){
+const modal=document.getElementById(id)
+if(modal){
+modal.classList.remove("open")
+}
+}
+
+function showToast(msg){
+
+const t=document.createElement("div")
+t.className="toast"
+t.innerText=msg
+
+document.getElementById("toastContainer").appendChild(t)
+
+setTimeout(()=>t.remove(),3000)
+
+}
+
+function updateClock(){
+
+const now=new Date()
+
+const dateOptions={weekday:'long',year:'numeric',month:'long',day:'numeric'}
+
+document.getElementById("currentDate").innerText=
+now.toLocaleDateString(undefined,dateOptions)
+
+document.getElementById("currentTime").innerText=
+"🕒 "+now.toLocaleTimeString()
+
+}
+
+setInterval(updateClock,1000)
+
+updateClock()
+
+function loadFaculty(){
+
+fetch("/api/faculty")
+.then(res=>res.json())
+.then(data=>{
+facultyList=data
+displayFaculty(data)
+})
+
+}
+
+function getCurrentWeekDates(){
+
+const today=new Date()
+
+const day=today.getDay()
+
+const monday=new Date(today)
+monday.setDate(today.getDate()-day+1)
+
+const days=[]
+
+for(let i=0;i<5;i++){
+
+let d=new Date(monday)
+d.setDate(monday.getDate()+i)
+
+days.push(
+d.toLocaleDateString(undefined,{
+month:"short",
+day:"numeric"
+})
+)
+
+}
+
+return days
+}
+
+function displayFaculty(list){
+
+const body=document.getElementById("facultyBody")
+body.innerHTML=""
+const weekDates=getCurrentWeekDates()
+list.forEach(f=>{
+
+let cls="not"
+
+if(f.status==="Available")cls="available"
+if(f.status==="Busy")cls="busy"
+if(f.status==="30 Minutes")cls="wait"
+
+let row=`
+<tr>
+
+<td>${f.name}</td>
+<td>${f.department}</td>
+<td>${f.floor}</td>
+<td>${f.cabin}</td>
+<td>${f.workingHours}</td>
+
+<td>
+<span class="status-pill ${cls}">
+<span class="pill-dot"></span>
+${f.status}
+</span>
+</td>
+
+<td>
+<button onclick="toggleWeekly('${f.name}')">Weekly</button>
+</td>
+
+</tr>
+
+<tr id="weekly-${f.name}" style="display:none">
+<td colspan="7">
+
+<div class="week-inner">
+    
+    <div class="dayCard">Mon (${weekDates[0]})<br>${f.monday||"-"}</div>
+    <div class="dayCard">Tue (${weekDates[1]})<br>${f.tuesday||"-"}</div>
+    <div class="dayCard">Wed (${weekDates[2]})<br>${f.wednesday||"-"}</div>
+    <div class="dayCard">Thu (${weekDates[3]})<br>${f.thursday||"-"}</div>
+    <div class="dayCard">Fri (${weekDates[4]})<br>${f.friday||"-"}</div>
+
+</div>
+
+</td>
+</tr>
+`
+
+body.innerHTML+=row
+
+})
+
+}
+
+function toggleWeekly(name){
+
+let row=document.getElementById("weekly-"+name)
+
+if(row){
+row.style.display=row.style.display==="none"?"table-row":"none"
+}
+
+}
+
+document.getElementById("search").addEventListener("input",function(){
+
+let search=this.value.toLowerCase()
+
+displayFaculty(
+facultyList.filter(f=>
+f.name.toLowerCase().includes(search) ||
+f.department.toLowerCase().includes(search)
+)
+)
+
+})
+
+document.getElementById("deptFilter").addEventListener("change",function(){
+
+if(this.value==="all")displayFaculty(facultyList)
+else displayFaculty(facultyList.filter(f=>f.department===this.value))
+
+})
+
+function updateStatus(){
+
+let name=document.getElementById("facultyName").value
+let status=document.getElementById("statusSelect").value
+let hours=document.getElementById("workingHours").value
+
+fetch("/api/update",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({name,status,workingHours:hours})
+})
+.then(res=>res.text())
+.then(msg=>{
+showToast(msg)
+closeModal("modalStatus")
+loadFaculty()
+})
+
+}
+
+function addFaculty(){
+
+let name=document.getElementById("newName").value
+let dept=document.getElementById("newDept").value
+let floor=document.getElementById("newFloor").value
+let cabin=document.getElementById("newCabin").value
+let hours=document.getElementById("newHours").value
+
+fetch("/api/register",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+name,
+department:dept,
+floor,
+cabin,
+workingHours:hours
+})
+})
+.then(res=>res.text())
+.then(msg=>{
+showToast(msg)
+closeModal("modalAdd")
+loadFaculty()
+})
+
+}
+
+function updateSchedule(){
+
+let name=document.getElementById("facultySchedule").value
+
+fetch("/api/updateSchedule",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+
+name,
+monday:document.getElementById("mon").value,
+tuesday:document.getElementById("tue").value,
+wednesday:document.getElementById("wed").value,
+thursday:document.getElementById("thu").value,
+friday:document.getElementById("fri").value
+
+})
+})
+.then(res=>res.text())
+.then(msg=>{
+showToast(msg)
+closeModal("modalSchedule")
+loadFaculty()
+})
+
+}
+
+loadFaculty()
+
+</script>
+
+
+
+</body>
+</html>
